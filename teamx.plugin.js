@@ -77,13 +77,14 @@ const plugin = {
   async chapters(id) {
     const seriesSlug = id.replace(/^\/series\//, "").replace(/^\//, "").replace(/\/$/, "");
     const list = [];
+    const seen = new Set();
     let page = 1;
     while (true) {
       const doc = await getDoc("/series/" + seriesSlug + "?page=" + page);
       const cards = doc.querySelectorAll(".chapter-card");
       if (cards.length === 0) break;
       
-      let pageAdded = 0;
+      let newAdded = 0;
       cards.forEach((card) => {
         const link = card.querySelector("a.chapter-link");
         if (!link) return;
@@ -94,6 +95,9 @@ const plugin = {
           num = numMatch ? numMatch[0] : null;
         }
         const chapId = "series/" + seriesSlug + "/" + num;
+        if (seen.has(chapId)) return;
+        seen.add(chapId);
+        
         const titleEl = card.querySelector(".chapter-title");
         const dateEl = card.querySelector(".chapter-date span");
         list.push({
@@ -104,10 +108,10 @@ const plugin = {
           language: "ar",
           publishAt: dateEl?.text()?.trim() || undefined,
         });
-        pageAdded++;
+        newAdded++;
       });
       
-      if (pageAdded === 0 || cards.length < 40) {
+      if (newAdded === 0) {
         break;
       }
       page++;
