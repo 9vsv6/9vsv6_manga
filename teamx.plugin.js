@@ -75,7 +75,7 @@ const plugin = {
   },
 
   async chapters(id) {
-    const seriesSlug = id.replace(/^\/series\//, "").replace(/^\//, "").replace(/\/$/, "");
+    const seriesSlug = id.replace(/^(series\/|\/series\/)/, "").replace(/^\//, "").replace(/\/$/, "");
     const list = [];
     const seen = new Set();
     let page = 1;
