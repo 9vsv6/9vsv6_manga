@@ -151,8 +151,12 @@ const plugin = {
 
   async pageUrls(chapterId) {
     const doc = await getDoc("/series/" + chapterId);
-    return doc.querySelectorAll("figure.image-container img").map((img) => {
-      return abs(img.attr("src"));
+    return doc.querySelectorAll("img").map((img) => {
+      const src = img.attr("src") || img.attr("data-src") || img.attr("data-lazy-src") || "";
+      if (src.includes("/upload/series/") && (src.includes("/page-") || src.includes(".webp") || src.includes(".jpg"))) {
+        return abs(src);
+      }
+      return null;
     }).filter(Boolean);
   },
 

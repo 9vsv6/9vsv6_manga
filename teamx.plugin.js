@@ -106,8 +106,19 @@ const plugin = {
 
   async pageUrls(chapterId) {
     const doc = await getDoc("/" + chapterId);
-    return doc.querySelectorAll(".reading-content img").map((img) => {
-      return abs(img.attr("src"));
+    let imgs = doc.querySelectorAll(".read-container img");
+    if (imgs.length === 0) {
+      imgs = doc.querySelectorAll(".entry-content img");
+    }
+    if (imgs.length === 0) {
+      imgs = doc.querySelectorAll("img");
+    }
+    return imgs.map((img) => {
+      const src = img.attr("src") || img.attr("data-src") || img.attr("data-lazy-src") || "";
+      if (src.includes("/uploads/manga_") || src.includes("/chapter/")) {
+        return abs(src);
+      }
+      return null;
     }).filter(Boolean);
   },
 
