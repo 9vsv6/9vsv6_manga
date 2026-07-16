@@ -27,6 +27,15 @@
       "nsfw": false,
       "icon": "https://io.mangalik.net/wp-content/app/lekmanganet/512.png",
       "entry": "mangalik.plugin.js"
+    },
+    {
+      "id": "3asq",
+      "name": "3asq",
+      "version": "1.0.3",
+      "lang": "ar",
+      "nsfw": false,
+      "icon": "https://3asq.online/wp-content/uploads/2018/10/cropped-logo-3asq-1-192x192.png",
+      "entry": "3asq.plugin.js"
     }
   ]
 }
