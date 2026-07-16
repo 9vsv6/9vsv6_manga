@@ -69,8 +69,9 @@ const plugin = {
   },
 
   async detail(id) {
-    const doc = await getDoc("/manga/" + id);
-    const title = doc.querySelector(".post-title h1")?.text() || id;
+    const slug = id.replace(/^(manga\/|\/manga\/)/, "").replace(/^\//, "").replace(/\/$/, "");
+    const doc = await getDoc("/manga/" + slug);
+    const title = doc.querySelector(".post-title h1")?.text() || slug;
     const cover = abs(doc.querySelector(".summary_image img")?.attr("src") || doc.querySelector(".summary_image img")?.attr("data-src"));
     const description = doc.querySelector(".summary__content")?.text();
     const status = doc.querySelector(".post-status .summary-content")?.text();
@@ -90,7 +91,7 @@ const plugin = {
     }
 
     return {
-      id,
+      id: slug,
       title: title.trim(),
       cover,
       description: description ? description.trim() : "",
@@ -100,8 +101,9 @@ const plugin = {
   },
 
   async chapters(id) {
+    const slug = id.replace(/^(manga\/|\/manga\/)/, "").replace(/^\//, "").replace(/\/$/, "");
     // Madara cached chapter list ajax endpoint
-    const res = await harbor.http(BASE + "/manga/" + id + "/ajax/chapters/", { method: "POST", responseType: "text" });
+    const res = await harbor.http(BASE + "/manga/" + slug + "/ajax/chapters/", { method: "POST", responseType: "text" });
     if (!res.ok) throw new Error("ajax chapters error " + res.status);
     const doc = harbor.parseHtml(res.body);
 
@@ -113,14 +115,14 @@ const plugin = {
       const href = a.attr("href") || "";
       
       const matchSlug = href.match(/\/manga\/[^/]+\/([^/]+)\/?$/);
-      const slug = matchSlug ? matchSlug[1] : "";
-      if (!slug) return;
+      const chSlug = matchSlug ? matchSlug[1] : "";
+      if (!chSlug) return;
       
-      const chapId = id + "/" + slug;
+      const chapId = "manga/" + slug + "/" + chSlug;
       if (seen.has(chapId)) return;
       seen.add(chapId);
 
-      const num = parseChapterNumber(slug);
+      const num = parseChapterNumber(chSlug);
 
       const dateEl = li.querySelector(".chapter-release-date");
       const dateText = dateEl?.text()?.trim() || "";
@@ -140,7 +142,8 @@ const plugin = {
   },
 
   async pageUrls(chapterId) {
-    const doc = await getDoc("/manga/" + chapterId);
+    const cleanId = chapterId.replace(/^(manga\/|\/manga\/)/, "").replace(/^\//, "").replace(/\/$/, "");
+    const doc = await getDoc("/manga/" + cleanId);
     let imgs = doc.querySelectorAll(".reading-content img");
     if (imgs.length === 0) {
       imgs = doc.querySelectorAll(".page-break img");
