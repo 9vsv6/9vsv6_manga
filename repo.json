@@ -1,5 +1,5 @@
 {
-  "name": "My Manga Repo",
+  "name": "9vsv6 Manga Repo",
   "plugins": [
     {
       "id": "azora",
@@ -18,15 +18,6 @@
       "nsfw": false,
       "icon": "https://olympustaff.com/assets/images/favicon.png",
       "entry": "teamx.plugin.js"
-    },
-    {
-      "id": "example-source",
-      "name": "Example Source",
-      "version": "1.0.0",
-      "lang": "en",
-      "nsfw": false,
-      "icon": "https://example-manga-host.test/icon.png",
-      "entry": "example.plugin.js"
     }
   ]
 }
