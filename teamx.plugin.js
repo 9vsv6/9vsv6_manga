@@ -75,29 +75,43 @@ const plugin = {
   },
 
   async chapters(id) {
-    const doc = await getDoc("/series/" + id);
     const seriesSlug = id.replace(/^\/series\//, "").replace(/^\//, "").replace(/\/$/, "");
-    const list = doc.querySelectorAll(".chapter-card").map((card) => {
-      const link = card.querySelector("a.chapter-link");
-      if (!link) return null;
-      let num = card.attr("data-number") || null;
-      if (!num) {
-        const numText = card.querySelector(".chapter-number")?.text() || "";
-        const numMatch = numText.match(/\d+(\.\d+)?/);
-        num = numMatch ? numMatch[0] : null;
+    const list = [];
+    let page = 1;
+    while (true) {
+      const doc = await getDoc("/series/" + seriesSlug + "?page=" + page);
+      const cards = doc.querySelectorAll(".chapter-card");
+      if (cards.length === 0) break;
+      
+      let pageAdded = 0;
+      cards.forEach((card) => {
+        const link = card.querySelector("a.chapter-link");
+        if (!link) return;
+        let num = card.attr("data-number") || null;
+        if (!num) {
+          const numText = card.querySelector(".chapter-number")?.text() || "";
+          const numMatch = numText.match(/\d+(\.\d+)?/);
+          num = numMatch ? numMatch[0] : null;
+        }
+        const chapId = "series/" + seriesSlug + "/" + num;
+        const titleEl = card.querySelector(".chapter-title");
+        const dateEl = card.querySelector(".chapter-date span");
+        list.push({
+          id: chapId,
+          chapter: num,
+          title: titleEl?.text()?.trim() || null,
+          pages: 0,
+          language: "ar",
+          publishAt: dateEl?.text()?.trim() || undefined,
+        });
+        pageAdded++;
+      });
+      
+      if (pageAdded === 0 || cards.length < 40) {
+        break;
       }
-      const chapId = "series/" + seriesSlug + "/" + num;
-      const titleEl = card.querySelector(".chapter-title");
-      const dateEl = card.querySelector(".chapter-date span");
-      return {
-        id: chapId,
-        chapter: num,
-        title: titleEl?.text()?.trim() || null,
-        pages: 0,
-        language: "ar",
-        publishAt: dateEl?.text()?.trim() || undefined,
-      };
-    }).filter(Boolean);
+      page++;
+    }
 
     // Sort descending strictly by chapter number to preserve Harbor groups
     list.sort((a, b) => parseFloat(b.chapter) - parseFloat(a.chapter));
