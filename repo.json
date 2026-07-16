@@ -1,0 +1,32 @@
+{
+  "name": "My Manga Repo",
+  "plugins": [
+    {
+      "id": "azora",
+      "name": "Azora",
+      "version": "1.0.0",
+      "lang": "ar",
+      "nsfw": false,
+      "icon": "https://storage.azorafly.com/public/upload/2025/12/24/c925c7f3-2310-4e90-9b62-7fae04fe1c36.webp",
+      "entry": "azora.plugin.js"
+    },
+    {
+      "id": "teamx",
+      "name": "Team X",
+      "version": "1.0.0",
+      "lang": "ar",
+      "nsfw": false,
+      "icon": "https://olympustaff.com/assets/images/favicon.png",
+      "entry": "teamx.plugin.js"
+    },
+    {
+      "id": "example-source",
+      "name": "Example Source",
+      "version": "1.0.0",
+      "lang": "en",
+      "nsfw": false,
+      "icon": "https://example-manga-host.test/icon.png",
+      "entry": "example.plugin.js"
+    }
+  ]
+}
