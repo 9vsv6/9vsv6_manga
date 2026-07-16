@@ -26,6 +26,25 @@ function cardToSummary(el) {
   };
 }
 
+function parseChapterNumber(slug) {
+  let normalized = slug.replace(/-(\d+)/g, ".$1");
+  if (/^\d+(\.\d+)?$/.test(normalized)) {
+    return normalized;
+  }
+  const match = normalized.match(/^(\d+)([a-z]+)$/i);
+  if (match) {
+    const numPart = match[1];
+    const letterPart = match[2].toLowerCase();
+    let fraction = 0;
+    for (let i = 0; i < letterPart.length; i++) {
+      fraction = fraction * 26 + (letterPart.charCodeAt(i) - 96);
+    }
+    return (parseFloat(numPart) + fraction / 100).toString();
+  }
+  const matchNum = normalized.match(/\d+(\.\d+)?/);
+  return matchNum ? matchNum[0] : slug;
+}
+
 const plugin = {
   id: "3asq",
   name: "3asq",
@@ -101,8 +120,7 @@ const plugin = {
       if (seen.has(chapId)) return;
       seen.add(chapId);
 
-      const matchNum = slug.match(/\d+(\.\d+)?/);
-      const num = matchNum ? matchNum[0] : slug;
+      const num = parseChapterNumber(slug);
 
       const dateEl = li.querySelector(".chapter-release-date");
       const dateText = dateEl?.text()?.trim() || "";

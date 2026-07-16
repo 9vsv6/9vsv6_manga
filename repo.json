@@ -4,7 +4,7 @@
     {
       "id": "azora",
       "name": "Azora",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "lang": "ar",
       "nsfw": false,
       "icon": "https://storage.azorafly.com/public/upload/2025/12/24/c925c7f3-2310-4e90-9b62-7fae04fe1c36.webp",
@@ -13,7 +13,7 @@
     {
       "id": "teamx",
       "name": "Team X",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "lang": "ar",
       "nsfw": false,
       "icon": "https://olympustaff.com/assets/images/favicon.png",
@@ -22,7 +22,7 @@
     {
       "id": "mangalik",
       "name": "Mangalik",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "lang": "ar",
       "nsfw": false,
       "icon": "https://io.mangalik.net/wp-content/app/lekmanganet/512.png",
@@ -31,7 +31,7 @@
     {
       "id": "3asq",
       "name": "3asq",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "lang": "ar",
       "nsfw": false,
       "icon": "https://3asq.online/wp-content/uploads/2018/10/cropped-logo-3asq-1-192x192.png",
