@@ -1,7 +1,7 @@
 const BASE = "https://olympustaff.com";
 
 async function getDoc(path) {
-  const res = await harbor.http(BASE + path, { responseType: "text" });
+  const res = await harbor.http(BASE + encodeURI(path), { responseType: "text" });
   if (!res.ok) throw new Error("http " + res.status + " for " + path);
   return harbor.parseHtml(res.body);
 }
