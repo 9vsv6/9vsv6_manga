@@ -18,6 +18,15 @@
       "nsfw": false,
       "icon": "https://olympustaff.com/assets/images/favicon.png",
       "entry": "teamx.plugin.js"
+    },
+    {
+      "id": "mangalik",
+      "name": "Mangalik",
+      "version": "1.0.0",
+      "lang": "ar",
+      "nsfw": false,
+      "icon": "https://io.mangalik.net/wp-content/app/lekmanganet/512.png",
+      "entry": "mangalik.plugin.js"
     }
   ]
 }
