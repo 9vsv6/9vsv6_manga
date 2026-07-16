@@ -20,7 +20,7 @@ function cardToSummary(el) {
   const href = link.attr("href") || "";
   const img = el.querySelector("img");
   return {
-    id: href.replace(/^https?:\/\/mangalik\.net\/manga\//, "").replace(/^\/manga\//, "").replace(/\/$/, ""),
+    id: "mangalik-" + href.replace(/^https?:\/\/mangalik\.net\/manga\//, "").replace(/^\/manga\//, "").replace(/\/$/, ""),
     title: (link.attr("title") || link.text() || "").trim(),
     cover: abs(img?.attr("src") || img?.attr("data-src") || img?.attr("data-lazy-src")),
   };
@@ -54,7 +54,7 @@ const plugin = {
     if (!result.success || !result.data) return [];
     return result.data.map(item => {
       const href = item.url || "";
-      const id = href.replace(/^https?:\/\/mangalik\.net\/manga\//, "").replace(/^\/manga\//, "").replace(/\/$/, "");
+      const id = "mangalik-" + href.replace(/^https?:\/\/mangalik\.net\/manga\//, "").replace(/^\/manga\//, "").replace(/\/$/, "");
       return {
         id,
         title: item.title,
@@ -64,8 +64,9 @@ const plugin = {
   },
 
   async detail(id) {
-    const doc = await getDoc("/manga/" + id + "/");
-    const title = doc.querySelector(".post-title h1")?.text() || id;
+    const slug = id.replace(/^mangalik-/, "").replace(/^(manga\/|\/manga\/)/, "").replace(/^\//, "").replace(/\/$/, "");
+    const doc = await getDoc("/manga/" + slug + "/");
+    const title = doc.querySelector(".post-title h1")?.text() || slug;
     const cover = abs(doc.querySelector(".summary_image img")?.attr("src") || doc.querySelector(".summary_image img")?.attr("data-src"));
     const description = doc.querySelector(".description-summary")?.text() || doc.querySelector(".manga-excerpt")?.text();
 
@@ -80,7 +81,7 @@ const plugin = {
     }
 
     return {
-      id,
+      id: "mangalik-" + slug,
       title: title.trim(),
       cover,
       description: description ? description.trim() : "",
@@ -90,9 +91,10 @@ const plugin = {
   },
 
   async chapters(id) {
+    const slug = id.replace(/^mangalik-/, "").replace(/^(manga\/|\/manga\/)/, "").replace(/^\//, "").replace(/\/$/, "");
     let doc;
     try {
-      doc = await getDoc("/manga/" + id + "/");
+      doc = await getDoc("/manga/" + slug + "/");
     } catch (e) {
       throw e;
     }
@@ -123,8 +125,9 @@ const plugin = {
       if (!link) return null;
       const href = link.attr("href") || "";
       const dateEl = li.querySelector(".chapter-release-date");
+      const chSlug = href.replace(/^https?:\/\/mangalik\.net\/manga\//, "").replace(/^\/manga\//, "").replace(/\/$/, "");
       return {
-        id: href.replace(/^https?:\/\/mangalik\.net\/manga\//, "").replace(/^\/manga\//, "").replace(/\/$/, ""),
+        id: "mangalik-" + chSlug,
         chapter: link.text().trim(),
         title: null,
         pages: 0,
@@ -135,7 +138,8 @@ const plugin = {
   },
 
   async pageUrls(chapterId) {
-    const doc = await getDoc("/manga/" + chapterId + "/");
+    const cleanId = chapterId.replace(/^mangalik-/, "").replace(/^(manga\/|\/manga\/)/, "").replace(/^\//, "").replace(/\/$/, "");
+    const doc = await getDoc("/manga/" + cleanId + "/");
     return doc.querySelectorAll(".reading-content img").map((img) => {
       return abs(img.attr("src") || img.attr("data-src") || img.attr("data-lazy-src"));
     }).filter(Boolean);

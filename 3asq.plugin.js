@@ -20,7 +20,7 @@ function cardToSummary(el) {
   const href = link.attr("href") || "";
   const img = el.querySelector(".item-thumb img");
   return {
-    id: href.replace(/^https?:\/\/3asq\.online\/manga\//, "").replace(/^\/manga\//, "").replace(/\/$/, ""),
+    id: "3asq-" + href.replace(/^https?:\/\/3asq\.online\/manga\//, "").replace(/^\/manga\//, "").replace(/\/$/, ""),
     title: (link.attr("title") || "").trim(),
     cover: abs(img?.attr("src") || img?.attr("data-src")),
   };
@@ -69,7 +69,7 @@ const plugin = {
   },
 
   async detail(id) {
-    const slug = id.replace(/^(manga\/|\/manga\/)/, "").replace(/^\//, "").replace(/\/$/, "");
+    const slug = id.replace(/^3asq-/, "").replace(/^(manga\/|\/manga\/)/, "").replace(/^\//, "").replace(/\/$/, "");
     const doc = await getDoc("/manga/" + slug);
     const title = doc.querySelector(".post-title h1")?.text() || slug;
     const cover = abs(doc.querySelector(".summary_image img")?.attr("src") || doc.querySelector(".summary_image img")?.attr("data-src"));
@@ -91,7 +91,7 @@ const plugin = {
     }
 
     return {
-      id: slug,
+      id: "3asq-" + slug,
       title: title.trim(),
       cover,
       description: description ? description.trim() : "",
@@ -101,7 +101,7 @@ const plugin = {
   },
 
   async chapters(id) {
-    const slug = id.replace(/^(manga\/|\/manga\/)/, "").replace(/^\//, "").replace(/\/$/, "");
+    const slug = id.replace(/^3asq-/, "").replace(/^(manga\/|\/manga\/)/, "").replace(/^\//, "").replace(/\/$/, "");
     // Madara cached chapter list ajax endpoint
     const res = await harbor.http(BASE + "/manga/" + slug + "/ajax/chapters/", { method: "POST", responseType: "text" });
     if (!res.ok) throw new Error("ajax chapters error " + res.status);
@@ -118,7 +118,7 @@ const plugin = {
       const chSlug = matchSlug ? matchSlug[1] : "";
       if (!chSlug) return;
       
-      const chapId = "manga/" + slug + "/" + chSlug;
+      const chapId = "3asq-manga/" + slug + "/" + chSlug;
       if (seen.has(chapId)) return;
       seen.add(chapId);
 
@@ -142,7 +142,7 @@ const plugin = {
   },
 
   async pageUrls(chapterId) {
-    const cleanId = chapterId.replace(/^(manga\/|\/manga\/)/, "").replace(/^\//, "").replace(/\/$/, "");
+    const cleanId = chapterId.replace(/^3asq-/, "").replace(/^(manga\/|\/manga\/)/, "").replace(/^\//, "").replace(/\/$/, "");
     const doc = await getDoc("/manga/" + cleanId);
     let imgs = doc.querySelectorAll(".reading-content img");
     if (imgs.length === 0) {

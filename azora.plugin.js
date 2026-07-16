@@ -20,7 +20,7 @@ function cardToSummary(el) {
   const href = link.attr("href") || "";
   const img = el.querySelector("img");
   return {
-    id: href.replace(/^\/series\//, "").replace(/\/$/, ""),
+    id: "azora-" + href.replace(/^\/series\//, "").replace(/\/$/, ""),
     title: (link.attr("title") || "").trim(),
     cover: abs(img?.attr("src")),
   };
@@ -45,8 +45,9 @@ const plugin = {
   },
 
   async detail(id) {
-    const doc = await getDoc("/series/" + id);
-    const title = doc.querySelector("h1[itemprop='name']")?.text() || id;
+    const slug = id.replace(/^azora-/, "").replace(/^(series\/|\/series\/)/, "").replace(/^\//, "").replace(/\/$/, "");
+    const doc = await getDoc("/series/" + slug);
+    const title = doc.querySelector("h1[itemprop='name']")?.text() || slug;
     const cover = abs(doc.querySelector("img[alt*='Cover of']")?.attr("src"));
     const description = doc.querySelector("div.rounded-lg p")?.text();
 
@@ -61,7 +62,7 @@ const plugin = {
     }
 
     return {
-      id,
+      id: "azora-" + slug,
       title: title.trim(),
       cover,
       description: description ? description.trim() : "",
@@ -71,7 +72,8 @@ const plugin = {
   },
 
   async chapters(id) {
-    const doc = await getDoc("/series/" + id);
+    const slug = id.replace(/^azora-/, "").replace(/^(series\/|\/series\/)/, "").replace(/^\//, "").replace(/\/$/, "");
+    const doc = await getDoc("/series/" + slug);
     const seen = new Set();
     const list = [];
     
@@ -104,7 +106,7 @@ const plugin = {
         chaps.forEach(ch => {
           if (!ch || !ch.slug) return;
           const num = ch.number;
-          const chapId = id + "/" + ch.slug;
+          const chapId = "azora-series/" + slug + "/" + ch.slug;
           if (seen.has(chapId)) return;
           seen.add(chapId);
           
@@ -126,7 +128,7 @@ const plugin = {
     if (list.length === 0) {
       doc.querySelectorAll("a[href*='/chapter-']").forEach((a) => {
         const href = a.attr("href") || "";
-        const chapId = href.replace(/^\/series\//, "").replace(/^\//, "");
+        const chapId = "azora-series/" + href.replace(/^\/series\//, "").replace(/^\//, "");
         if (!chapId || seen.has(chapId)) return;
         seen.add(chapId);
 
@@ -150,7 +152,8 @@ const plugin = {
   },
 
   async pageUrls(chapterId) {
-    const doc = await getDoc("/series/" + chapterId);
+    const cleanId = chapterId.replace(/^azora-/, "").replace(/^(series\/|\/series\/)/, "").replace(/^\//, "").replace(/\/$/, "");
+    const doc = await getDoc("/series/" + cleanId);
     return doc.querySelectorAll("img").map((img) => {
       const src = img.attr("src") || img.attr("data-src") || img.attr("data-lazy-src") || "";
       if (src.includes("/upload/series/") && (src.includes("/page-") || src.includes(".webp") || src.includes(".jpg"))) {

@@ -20,7 +20,7 @@ function cardToSummary(el) {
   const img = el.querySelector("img");
   const title = (el.querySelector("h4")?.text() || el.querySelector(".tt")?.text() || el.attr("title") || el.querySelector("a")?.attr("title") || "").trim();
   return {
-    id: href.replace(/^https?:\/\/olympustaff\.com\/series\//, "").replace(/^\/series\//, "").replace(/\/$/, ""),
+    id: "teamx-" + href.replace(/^https?:\/\/olympustaff\.com\/series\//, "").replace(/^\/series\//, "").replace(/\/$/, ""),
     title,
     cover: abs(img?.attr("src")),
   };
@@ -48,8 +48,9 @@ const plugin = {
   },
 
   async detail(id) {
-    const doc = await getDoc("/series/" + id);
-    const title = doc.querySelector(".author-info-title h1")?.text() || id;
+    const slug = id.replace(/^teamx-/, "").replace(/^(series\/|\/series\/)/, "").replace(/^\//, "").replace(/\/$/, "");
+    const doc = await getDoc("/series/" + slug);
+    const title = doc.querySelector(".author-info-title h1")?.text() || slug;
     const cover = abs(doc.querySelector(".text-right img")?.attr("src"));
     const description = doc.querySelector(".review-content p")?.text();
     const status = doc.querySelector('a[href*="status="]')?.text();
@@ -65,7 +66,7 @@ const plugin = {
     }
 
     return {
-      id,
+      id: "teamx-" + slug,
       title: title.trim(),
       cover,
       description: description ? description.trim() : "",
@@ -75,7 +76,7 @@ const plugin = {
   },
 
   async chapters(id) {
-    const seriesSlug = id.replace(/^(series\/|\/series\/)/, "").replace(/^\//, "").replace(/\/$/, "");
+    const seriesSlug = id.replace(/^teamx-/, "").replace(/^(series\/|\/series\/)/, "").replace(/^\//, "").replace(/\/$/, "");
     const list = [];
     const seen = new Set();
     let page = 1;
@@ -94,7 +95,7 @@ const plugin = {
           const numMatch = numText.match(/\d+(\.\d+)?/);
           num = numMatch ? numMatch[0] : null;
         }
-        const chapId = "series/" + seriesSlug + "/" + num;
+        const chapId = "teamx-series/" + seriesSlug + "/" + num;
         if (seen.has(chapId)) return;
         seen.add(chapId);
         
@@ -123,7 +124,8 @@ const plugin = {
   },
 
   async pageUrls(chapterId) {
-    const doc = await getDoc("/" + chapterId);
+    const cleanId = chapterId.replace(/^teamx-/, "").replace(/^(series\/|\/series\/)/, "").replace(/^\//, "").replace(/\/$/, "");
+    const doc = await getDoc("/" + cleanId);
     let imgs = doc.querySelectorAll(".read-container img");
     if (imgs.length === 0) {
       imgs = doc.querySelectorAll(".entry-content img");
