@@ -76,15 +76,21 @@ const plugin = {
 
   async chapters(id) {
     const doc = await getDoc("/series/" + id);
-    return doc.querySelectorAll(".chapter-card").map((card) => {
+    const seriesSlug = id.replace(/^\/series\//, "").replace(/^\//, "").replace(/\/$/, "");
+    const list = doc.querySelectorAll(".chapter-card").map((card) => {
       const link = card.querySelector("a.chapter-link");
       if (!link) return null;
-      const href = link.attr("href") || "";
-      const num = card.attr("data-number") || null;
+      let num = card.attr("data-number") || null;
+      if (!num) {
+        const numText = card.querySelector(".chapter-number")?.text() || "";
+        const numMatch = numText.match(/\d+(\.\d+)?/);
+        num = numMatch ? numMatch[0] : null;
+      }
+      const chapId = "series/" + seriesSlug + "/" + num;
       const titleEl = card.querySelector(".chapter-title");
       const dateEl = card.querySelector(".chapter-date span");
       return {
-        id: href.replace(/^https?:\/\/olympustaff\.com\//, "").replace(/^\//, ""),
+        id: chapId,
         chapter: num,
         title: titleEl?.text()?.trim() || null,
         pages: 0,
@@ -92,6 +98,10 @@ const plugin = {
         publishAt: dateEl?.text()?.trim() || undefined,
       };
     }).filter(Boolean);
+
+    // Sort descending strictly by chapter number to preserve Harbor groups
+    list.sort((a, b) => parseFloat(b.chapter) - parseFloat(a.chapter));
+    return list;
   },
 
   async pageUrls(chapterId) {

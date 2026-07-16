@@ -74,24 +74,78 @@ const plugin = {
     const doc = await getDoc("/series/" + id);
     const seen = new Set();
     const list = [];
-    doc.querySelectorAll("a[href*='/chapter-']").forEach((a) => {
-      const href = a.attr("href") || "";
-      const chapId = href.replace(/^\/series\//, "").replace(/^\//, "");
-      if (!chapId || seen.has(chapId)) return;
-      seen.add(chapId);
+    
+    // Attempt to extract chapters from the Astro Island props first (this has the complete database state!)
+    const island = doc.querySelector("astro-island[component-url*='BVMzJQA02.js']");
+    if (island) {
+      const propsStr = island.attr("props") || "";
+      try {
+        const props = JSON.parse(propsStr);
+        // Props inside Astro Island are serialized arrays in the format [0, value] or [1, [items]]
+        function resolveAstro(val) {
+          if (Array.isArray(val) && val.length === 2 && (val[0] === 0 || val[0] === 1)) {
+            return resolveAstro(val[1]);
+          }
+          if (Array.isArray(val)) {
+            return val.map(resolveAstro);
+          }
+          if (typeof val === 'object' && val !== null) {
+            const res = {};
+            for (const k in val) {
+              res[k] = resolveAstro(val[k]);
+            }
+            return res;
+          }
+          return val;
+        }
 
-      const numMatch = href.match(/chapter-(\d+)/);
-      const num = numMatch ? numMatch[1] : null;
-      const dateEl = a.querySelector("span[aria-label]");
-      list.push({
-        id: chapId,
-        chapter: num,
-        title: null,
-        pages: 0,
-        language: "ar",
-        publishAt: dateEl?.attr("aria-label") || undefined,
+        const cleanedProps = resolveAstro(props);
+        const chaps = cleanedProps.initialChap || [];
+        chaps.forEach(ch => {
+          if (!ch || !ch.slug) return;
+          const num = ch.number;
+          const chapId = id + "/" + ch.slug;
+          if (seen.has(chapId)) return;
+          seen.add(chapId);
+          
+          list.push({
+            id: chapId,
+            chapter: String(num),
+            title: ch.title || null,
+            pages: 0,
+            language: "ar",
+            publishAt: ch.createdAt || undefined,
+          });
+        });
+      } catch (e) {
+        // Fallback to HTML scraping below if JSON parsing fails
+      }
+    }
+
+    // Fallback: scrape from HTML if props parsing was unsuccessful
+    if (list.length === 0) {
+      doc.querySelectorAll("a[href*='/chapter-']").forEach((a) => {
+        const href = a.attr("href") || "";
+        const chapId = href.replace(/^\/series\//, "").replace(/^\//, "");
+        if (!chapId || seen.has(chapId)) return;
+        seen.add(chapId);
+
+        const numMatch = href.match(/chapter-(\d+)/);
+        const num = numMatch ? numMatch[1] : null;
+        const dateEl = a.querySelector("span[aria-label], time");
+        list.push({
+          id: chapId,
+          chapter: num,
+          title: null,
+          pages: 0,
+          language: "ar",
+          publishAt: dateEl ? (dateEl.attr("aria-label") || dateEl.text()?.trim()) : undefined,
+        });
       });
-    });
+    }
+
+    // Sort chapters in descending order by chapter number
+    list.sort((a, b) => parseFloat(b.chapter) - parseFloat(a.chapter));
     return list;
   },
 
