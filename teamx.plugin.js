@@ -1,3 +1,5 @@
+// Harbor manga provider plugin for Team X (olympustaff.com)
+
 const BASE = "https://olympustaff.com";
 
 async function getDoc(path) {
