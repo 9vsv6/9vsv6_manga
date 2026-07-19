@@ -89,10 +89,10 @@ const plugin = {
     if (!slug) return null;
     try {
       const doc = await getDoc("/series/" + slug);
-      const title = doc.querySelector(".author-info-title h1")?.text() || slug;
-      const coverUrl = doc.querySelector(".text-right img")?.attr("src") || doc.querySelector("img[src*='/manga/']")?.attr("src");
+      const title = doc.querySelector(".author-info-title h1")?.text() || doc.querySelector("h1")?.text() || slug;
+      const coverUrl = doc.querySelector(".text-right img")?.attr("src") || doc.querySelector("img[src*='/manga/']")?.attr("src") || doc.querySelector("img[src*='/images/']")?.attr("src");
       const cover = abs(coverUrl);
-      const description = doc.querySelector(".review-content p")?.text();
+      const description = doc.querySelector(".review-content p")?.text() || doc.querySelector(".review-content")?.text();
       const status = doc.querySelector('a[href*="status="]')?.text();
 
       let author = undefined;
@@ -106,8 +106,8 @@ const plugin = {
       }
 
       return {
-        id: "teamx-" + slug,
-        title: title.trim(),
+        id: id,
+        title: title ? title.trim() : slug,
         cover: cover && /^https?:\/\//i.test(cover) ? cover : undefined,
         description: description ? description.trim() : undefined,
         status: status ? status.trim() : undefined,
