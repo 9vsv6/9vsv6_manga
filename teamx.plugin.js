@@ -14,6 +14,28 @@ function abs(url) {
   return BASE + "/" + url;
 }
 
+function cleanSlug(id) {
+  if (!id) return "";
+  let s = String(id).trim();
+  s = s.replace(/^teamx-/, "");
+  s = s.replace(/^https?:\/\/[^\/]+/, "");
+  s = s.replace(/^(series\/|\/series\/)/, "");
+  s = s.replace(/^\/+|\/+$/g, "");
+  return s;
+}
+
+function cleanChapterPath(chapterId) {
+  if (!chapterId) return "";
+  let s = String(chapterId).trim();
+  s = s.replace(/^teamx-/, "");
+  s = s.replace(/^https?:\/\/[^\/]+/, "");
+  s = s.replace(/^\/+|\/+$/g, "");
+  if (!s.startsWith("series/")) {
+    s = "series/" + s;
+  }
+  return s;
+}
+
 function cardToSummary(el) {
   const link = el.name === "a" ? el : (el.querySelector("a[href*='/series/']") || el.querySelector("a"));
   if (!link) return null;
@@ -27,7 +49,7 @@ function cardToSummary(el) {
   const coverUrl = img?.attr("src") || img?.attr("data-src") || img?.attr("data-lazy-src") || "";
   const cover = abs(coverUrl);
 
-  const slug = href.replace(/^https?:\/\/olympustaff\.com\/series\//, "").replace(/^\/series\//, "").replace(/\/$/, "");
+  const slug = cleanSlug(href);
   if (!slug || slug === "series") return null;
 
   return {
@@ -63,41 +85,52 @@ const plugin = {
   },
 
   async detail(id) {
-    const slug = id.replace(/^teamx-/, "").replace(/^(series\/|\/series\/)/, "").replace(/^\//, "").replace(/\/$/, "");
-    const doc = await getDoc("/series/" + slug);
-    const title = doc.querySelector(".author-info-title h1")?.text() || slug;
-    const coverUrl = doc.querySelector(".text-right img")?.attr("src") || doc.querySelector("img[src*='/manga/']")?.attr("src");
-    const cover = abs(coverUrl);
-    const description = doc.querySelector(".review-content p")?.text();
-    const status = doc.querySelector('a[href*="status="]')?.text();
+    const slug = cleanSlug(id);
+    if (!slug) return null;
+    try {
+      const doc = await getDoc("/series/" + slug);
+      const title = doc.querySelector(".author-info-title h1")?.text() || slug;
+      const coverUrl = doc.querySelector(".text-right img")?.attr("src") || doc.querySelector("img[src*='/manga/']")?.attr("src");
+      const cover = abs(coverUrl);
+      const description = doc.querySelector(".review-content p")?.text();
+      const status = doc.querySelector('a[href*="status="]')?.text();
 
-    let author = undefined;
-    const listInfos = doc.querySelectorAll(".full-list-info");
-    for (const info of listInfos) {
-      const text = info.text() || "";
-      if (text.includes("الرسام:") || text.includes("الكاتب:") || text.includes("المؤلف:")) {
-        author = info.querySelector("a")?.text() || text.split(":")[1]?.trim();
-        break;
+      let author = undefined;
+      const listInfos = doc.querySelectorAll(".full-list-info");
+      for (const info of listInfos) {
+        const text = info.text() || "";
+        if (text.includes("الرسام:") || text.includes("الكاتب:") || text.includes("المؤلف:")) {
+          author = info.querySelector("a")?.text() || text.split(":")[1]?.trim();
+          break;
+        }
       }
-    }
 
-    return {
-      id: "teamx-" + slug,
-      title: title.trim(),
-      cover: cover && /^https?:\/\//i.test(cover) ? cover : undefined,
-      description: description ? description.trim() : undefined,
-      status: status ? status.trim() : undefined,
-      author: author ? author.trim() : undefined,
-    };
+      return {
+        id: "teamx-" + slug,
+        title: title.trim(),
+        cover: cover && /^https?:\/\//i.test(cover) ? cover : undefined,
+        description: description ? description.trim() : undefined,
+        status: status ? status.trim() : undefined,
+        author: author ? author.trim() : undefined,
+      };
+    } catch (e) {
+      return null;
+    }
   },
 
   async chapters(id) {
-    const seriesSlug = id.replace(/^teamx-/, "").replace(/^(series\/|\/series\/)/, "").replace(/^\//, "").replace(/\/$/, "");
+    const seriesSlug = cleanSlug(id);
+    if (!seriesSlug) return [];
     const list = [];
     const seen = new Set();
     let page = 1;
     while (true) {
-      const doc = await getDoc("/series/" + seriesSlug + "?page=" + page);
+      let doc;
+      try {
+        doc = await getDoc("/series/" + seriesSlug + "?page=" + page);
+      } catch (e) {
+        break;
+      }
       const cards = doc.querySelectorAll(".chapter-card");
       if (cards.length === 0) break;
       
@@ -139,11 +172,14 @@ const plugin = {
   },
 
   async pageUrls(chapterId) {
-    let cleanId = chapterId.replace(/^teamx-/, "").replace(/^\//, "").replace(/\/$/, "");
-    if (!cleanId.startsWith("series/")) {
-      cleanId = "series/" + cleanId;
+    const path = cleanChapterPath(chapterId);
+    if (!path) return [];
+    let doc;
+    try {
+      doc = await getDoc("/" + path);
+    } catch (e) {
+      return [];
     }
-    const doc = await getDoc("/" + cleanId);
     let imgs = doc.querySelectorAll(".read-container img");
     if (imgs.length === 0) {
       imgs = doc.querySelectorAll(".entry-content img");
@@ -162,18 +198,22 @@ const plugin = {
   },
 
   async tags() {
-    const doc = await getDoc("/series");
-    const genres = doc.querySelectorAll("#select_genre option")
-      .map(opt => {
-        const val = opt.attr("value");
-        return val ? { id: "genre:" + val, name: opt.text().trim(), group: "Genre" } : null;
-      }).filter(Boolean);
-    const types = doc.querySelectorAll("#select_type option")
-      .map(opt => {
-        const val = opt.attr("value");
-        return val ? { id: "type:" + val, name: opt.text().trim(), group: "Type" } : null;
-      }).filter(Boolean);
-    return [...genres, ...types];
+    try {
+      const doc = await getDoc("/series");
+      const genres = doc.querySelectorAll("#select_genre option")
+        .map(opt => {
+          const val = opt.attr("value");
+          return val ? { id: "genre:" + val, name: opt.text().trim(), group: "Genre" } : null;
+        }).filter(Boolean);
+      const types = doc.querySelectorAll("#select_type option")
+        .map(opt => {
+          const val = opt.attr("value");
+          return val ? { id: "type:" + val, name: opt.text().trim(), group: "Type" } : null;
+        }).filter(Boolean);
+      return [...genres, ...types];
+    } catch (e) {
+      return [];
+    }
   }
 };
 
