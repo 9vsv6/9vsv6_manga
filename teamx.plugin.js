@@ -90,19 +90,26 @@ const plugin = {
     try {
       const doc = await getDoc("/series/" + slug);
       const title = doc.querySelector(".author-info-title h1")?.text() || doc.querySelector("h1")?.text() || slug;
-      const coverUrl = doc.querySelector(".text-right img")?.attr("src") || doc.querySelector("img[src*='/manga/']")?.attr("src") || doc.querySelector("img[src*='/images/']")?.attr("src");
+      const coverUrl = doc.querySelector(".text-right img")?.attr("src") || doc.querySelector("img.shadow-sm")?.attr("src") || doc.querySelector("img[src*='/manga/']")?.attr("src") || doc.querySelector("img[src*='/images/']")?.attr("src");
       const cover = abs(coverUrl);
       const description = doc.querySelector(".review-content p")?.text() || doc.querySelector(".review-content")?.text();
-      const status = doc.querySelector('a[href*="status="]')?.text();
 
+      let status = undefined;
       let author = undefined;
       const listInfos = doc.querySelectorAll(".full-list-info");
       for (const info of listInfos) {
         const text = info.text() || "";
-        if (text.includes("الرسام:") || text.includes("الكاتب:") || text.includes("المؤلف:")) {
-          author = info.querySelector("a")?.text() || text.split(":")[1]?.trim();
-          break;
+        if (text.includes("الحالة:")) {
+          const a = info.querySelector("a");
+          status = a ? a.text().trim() : text.replace("الحالة:", "").trim();
         }
+        if (text.includes("الرسام:") || text.includes("الكاتب:") || text.includes("المؤلف:")) {
+          const a = info.querySelector("a");
+          author = a ? a.text().trim() : text.split(":")[1]?.trim();
+        }
+      }
+      if (!status) {
+        status = doc.querySelector('a[href*="status="]')?.text();
       }
 
       return {
@@ -138,13 +145,24 @@ const plugin = {
       cards.forEach((card) => {
         const link = card.querySelector("a.chapter-link");
         if (!link) return;
+        let href = link.attr("href") || "";
+        if (href === "#" || href.startsWith("#") || href.includes("javascript:")) {
+          href = "";
+        }
+        
         let num = card.attr("data-number") || null;
         if (!num) {
           const numText = card.querySelector(".chapter-number")?.text() || "";
           const numMatch = numText.match(/\d+(\.\d+)?/);
           num = numMatch ? numMatch[0] : null;
         }
-        const chapId = "teamx-series/" + seriesSlug + "/" + (num || "0");
+        if (!num && href) {
+          const hrefMatch = href.match(/\/(\d+(\.\d+)?)\/?$/);
+          num = hrefMatch ? hrefMatch[1] : null;
+        }
+
+        const cleanPath = href ? href.replace(/^https?:\/\/[^\/]+/, "").replace(/^\/+|\/+$/g, "") : ("series/" + seriesSlug + "/" + (num || "0"));
+        const chapId = "teamx-" + cleanPath;
         if (seen.has(chapId)) return;
         seen.add(chapId);
         

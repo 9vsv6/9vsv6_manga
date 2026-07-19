@@ -1,0 +1,33 @@
+{
+  "name": "Team X (HTML Config)",
+  "iconUrl": "https://olympustaff.com/assets/images/favicon.png",
+  "baseUrl": "https://olympustaff.com",
+  "popularPath": "/series?page={page}",
+  "searchPath": "/search?keyword={query}",
+  "list": {
+    "item": "div.bsx",
+    "title": "a@title|.tt",
+    "link": "a@href",
+    "cover": "img@src|img@data-src"
+  },
+  "detail": {
+    "title": ".author-info-title h1|h1",
+    "cover": ".text-right img@src|img@src",
+    "description": ".review-content p",
+    "author": ".full-list-info a",
+    "status": "a[href*='status=']"
+  },
+  "chapters": {
+    "item": "a.chapter-link",
+    "link": "@href",
+    "number": ".chapter-number",
+    "title": ".chapter-title",
+    "date": ".chapter-date span"
+  },
+  "pages": {
+    "image": ".read-container img@src|.entry-content img@src|img@src"
+  },
+  "headers": {
+    "Referer": "https://olympustaff.com/"
+  }
+}
