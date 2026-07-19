@@ -7,7 +7,7 @@ async function getDoc(path) {
 }
 
 function abs(url) {
-  if (!url) return undefined;
+  if (!url || url.startsWith("data:")) return undefined;
   if (/^https?:\/\//i.test(url)) return url;
   if (url.startsWith("//")) return "https:" + url;
   if (url.startsWith("/")) return BASE + url;
@@ -15,14 +15,25 @@ function abs(url) {
 }
 
 function cardToSummary(el) {
-  const href = el.attr("href") || el.querySelector("a")?.attr("href") || "";
-  if (!href) return null;
-  const img = el.querySelector("img");
-  const title = (el.querySelector("h4")?.text() || el.querySelector(".tt")?.text() || el.attr("title") || el.querySelector("a")?.attr("title") || "").trim();
+  const link = el.name === "a" ? el : (el.querySelector("a[href*='/series/']") || el.querySelector("a"));
+  if (!link) return null;
+  const href = link.attr("href") || "";
+  if (!href || href === "#" || href.includes("javascript:")) return null;
+
+  const img = el.querySelector("img") || link.querySelector("img");
+  const title = (link.attr("title") || el.querySelector(".tt")?.text() || el.querySelector("h4")?.text() || link.text() || "").trim();
+  if (!title) return null;
+
+  const coverUrl = img?.attr("src") || img?.attr("data-src") || img?.attr("data-lazy-src") || "";
+  const cover = abs(coverUrl);
+
+  const slug = href.replace(/^https?:\/\/olympustaff\.com\/series\//, "").replace(/^\/series\//, "").replace(/\/$/, "");
+  if (!slug || slug === "series") return null;
+
   return {
-    id: "teamx-" + href.replace(/^https?:\/\/olympustaff\.com\/series\//, "").replace(/^\/series\//, "").replace(/\/$/, ""),
+    id: "teamx-" + slug,
     title,
-    cover: abs(img?.attr("src")),
+    cover: cover && /^https?:\/\//i.test(cover) ? cover : undefined,
   };
 }
 
@@ -31,27 +42,32 @@ const plugin = {
   name: "Team X",
 
   async popular(offset, tagId) {
-    const page = Math.floor(offset / 10) + 1;
+    const page = Math.floor(offset / 48) + 1;
     let query = "";
     if (tagId) {
       const [type, val] = tagId.split(":");
       query = `&${type}=${encodeURIComponent(val)}`;
     }
     const doc = await getDoc("/series?page=" + page + query);
-    return doc.querySelectorAll("div.bs").map(cardToSummary).filter(Boolean);
+    let cards = doc.querySelectorAll("div.bsx, div.bs");
+    if (cards.length === 0) {
+      cards = doc.querySelectorAll("a[href*='/series/']");
+    }
+    return cards.map(cardToSummary).filter(Boolean);
   },
 
   async search(query, offset, tagId) {
-    if (offset > 0) return []; // AJAX search does not support pagination
+    if (offset > 0) return [];
     const doc = await getDoc("/ajax/search?keyword=" + encodeURIComponent(query));
-    return doc.querySelectorAll("a.group").map(cardToSummary).filter(Boolean);
+    return doc.querySelectorAll("a.group, a[href*='/series/']").map(cardToSummary).filter(Boolean);
   },
 
   async detail(id) {
     const slug = id.replace(/^teamx-/, "").replace(/^(series\/|\/series\/)/, "").replace(/^\//, "").replace(/\/$/, "");
     const doc = await getDoc("/series/" + slug);
     const title = doc.querySelector(".author-info-title h1")?.text() || slug;
-    const cover = abs(doc.querySelector(".text-right img")?.attr("src"));
+    const coverUrl = doc.querySelector(".text-right img")?.attr("src") || doc.querySelector("img[src*='/manga/']")?.attr("src");
+    const cover = abs(coverUrl);
     const description = doc.querySelector(".review-content p")?.text();
     const status = doc.querySelector('a[href*="status="]')?.text();
 
@@ -68,10 +84,10 @@ const plugin = {
     return {
       id: "teamx-" + slug,
       title: title.trim(),
-      cover,
-      description: description ? description.trim() : "",
-      status: status ? status.trim() : "",
-      author: author ? author.trim() : "",
+      cover: cover && /^https?:\/\//i.test(cover) ? cover : undefined,
+      description: description ? description.trim() : undefined,
+      status: status ? status.trim() : undefined,
+      author: author ? author.trim() : undefined,
     };
   },
 
@@ -95,7 +111,7 @@ const plugin = {
           const numMatch = numText.match(/\d+(\.\d+)?/);
           num = numMatch ? numMatch[0] : null;
         }
-        const chapId = "teamx-series/" + seriesSlug + "/" + num;
+        const chapId = "teamx-series/" + seriesSlug + "/" + (num || "0");
         if (seen.has(chapId)) return;
         seen.add(chapId);
         
@@ -103,8 +119,8 @@ const plugin = {
         const dateEl = card.querySelector(".chapter-date span");
         list.push({
           id: chapId,
-          chapter: num,
-          title: titleEl?.text()?.trim() || null,
+          chapter: num ? String(num) : null,
+          title: titleEl?.text()?.trim() || undefined,
           pages: 0,
           language: "ar",
           publishAt: dateEl?.text()?.trim() || undefined,
@@ -118,13 +134,15 @@ const plugin = {
       page++;
     }
 
-    // Sort descending strictly by chapter number to preserve Harbor groups
-    list.sort((a, b) => parseFloat(b.chapter) - parseFloat(a.chapter));
+    list.sort((a, b) => (parseFloat(b.chapter) || 0) - (parseFloat(a.chapter) || 0));
     return list;
   },
 
   async pageUrls(chapterId) {
-    const cleanId = chapterId.replace(/^teamx-/, "").replace(/^(series\/|\/series\/)/, "").replace(/^\//, "").replace(/\/$/, "");
+    let cleanId = chapterId.replace(/^teamx-/, "").replace(/^\//, "").replace(/\/$/, "");
+    if (!cleanId.startsWith("series/")) {
+      cleanId = "series/" + cleanId;
+    }
     const doc = await getDoc("/" + cleanId);
     let imgs = doc.querySelectorAll(".read-container img");
     if (imgs.length === 0) {
@@ -135,8 +153,9 @@ const plugin = {
     }
     return imgs.map((img) => {
       const src = img.attr("src") || img.attr("data-src") || img.attr("data-lazy-src") || "";
-      if (src.includes("/uploads/manga_") || src.includes("/chapter/")) {
-        return abs(src);
+      if (!src.includes("logo") && !src.includes("favicon") && !src.includes("TeamX.png") && (src.includes("/uploads/") || src.includes("/images/manga/") || src.includes(".webp") || src.includes(".jpg") || src.includes(".png"))) {
+        const full = abs(src);
+        if (full && /^https?:\/\//i.test(full)) return full;
       }
       return null;
     }).filter(Boolean);
@@ -157,3 +176,5 @@ const plugin = {
     return [...genres, ...types];
   }
 };
+
+harbor.register(plugin);
