@@ -45,7 +45,8 @@ function cardToSummary(el) {
   if (!href || href === "#" || href.includes("javascript:")) return null;
 
   const img = el.querySelector("img") || link.querySelector("img");
-  const title = (link.attr("title") || el.querySelector(".tt")?.text() || el.querySelector("h4")?.text() || link.text() || "").trim();
+  const h3Title = el.querySelector("h3")?.text() || el.querySelector("h4")?.text() || el.querySelector(".tt")?.text();
+  const title = (link.attr("title") || h3Title || link.text() || "").trim();
   if (!title) return null;
 
   const coverUrl = img?.attr("src") || img?.attr("data-src") || img?.attr("data-lazy-src") || "";
@@ -67,17 +68,35 @@ const plugin = {
 
   async popular(offset, tagId) {
     const page = Math.floor(offset / 48) + 1;
-    let query = "";
+    let url = "/series?page=" + page;
+
     if (tagId) {
-      const [type, val] = tagId.split(":");
-      query = `&${type}=${encodeURIComponent(val)}`;
+      if (tagId === "latest" || tagId === "sort:latest") {
+        url = "/?page=" + page;
+      } else if (tagId.includes(":")) {
+        const parts = tagId.split(":");
+        const type = parts[0];
+        const val = parts.slice(1).join(":");
+        url = `/series?page=${page}&${type}=${encodeURIComponent(val)}`;
+      }
     }
-    const doc = await getDoc("/series?page=" + page + query);
-    let cards = doc.querySelectorAll("div.bsx, div.bs");
+
+    const doc = await getDoc(url);
+    let cards = doc.querySelectorAll("div.uta, div.box, div.bsx, div.bs");
     if (cards.length === 0) {
       cards = doc.querySelectorAll("a[href*='/series/']");
     }
-    return cards.map(cardToSummary).filter(Boolean);
+
+    const seen = new Set();
+    const result = [];
+    for (const card of cards) {
+      const summary = cardToSummary(card);
+      if (summary && !seen.has(summary.id)) {
+        seen.add(summary.id);
+        result.push(summary);
+      }
+    }
+    return result;
   },
 
   async search(query, offset, tagId) {
@@ -225,12 +244,20 @@ const plugin = {
           const val = opt.attr("value");
           return val ? { id: "genre:" + val, name: opt.text().trim(), group: "Genre" } : null;
         }).filter(Boolean);
+
       const types = doc.querySelectorAll("#select_type option")
         .map(opt => {
           const val = opt.attr("value");
           return val ? { id: "type:" + val, name: opt.text().trim(), group: "Type" } : null;
         }).filter(Boolean);
-      return [...genres, ...types];
+
+      const statuses = doc.querySelectorAll("#select_state option")
+        .map(opt => {
+          const val = opt.attr("value");
+          return val ? { id: "status:" + val, name: opt.text().trim(), group: "Status" } : null;
+        }).filter(Boolean);
+
+      return [...genres, ...types, ...statuses];
     } catch (e) {
       return [];
     }
